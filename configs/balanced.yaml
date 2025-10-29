@@ -1,0 +1,25 @@
+# Balanced Strategy Configuration
+
+strategy: momentum_breakout
+market: crypto
+timeframe: 5m
+
+risk:
+  risk_per_trade: 0.005        # 0.5%
+  max_daily_loss: 0.02         # 2%
+  max_portfolio_exposure: 0.4  # 40%
+  use_trailing_stop: true
+
+momentum:
+  lookback_period: 20
+  atr_period: 14
+  atr_multiplier: 2.0
+  trail_atr_multiplier: 1.5
+
+symbols:
+  - BTC-USD
+  - ETH-USD
+
+filters:
+  min_volume: 1000000
+  min_price: 0.01

@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: ops/Dockerfile.api
+    container_name: aurora-trader-api
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=sqlite:///./data/aurora_trader.db
+      - API_HOST=0.0.0.0
+      - API_PORT=8000
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./backend:/app/backend
+    restart: unless-stopped
+    networks:
+      - aurora-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  worker:
+    build:
+      context: .
+      dockerfile: ops/Dockerfile.api
+    container_name: aurora-trader-worker
+    command: python -m backend.worker
+    environment:
+      - DATABASE_URL=sqlite:///./data/aurora_trader.db
+      - WORKER_ENABLED=true
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data
+      - ./backend:/app/backend
+    restart: unless-stopped
+    networks:
+      - aurora-net
+    depends_on:
+      api:
+        condition: service_healthy
+
+  ui:
+    build:
+      context: .
+      dockerfile: ops/Dockerfile.ui
+    container_name: aurora-trader-ui
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+    restart: unless-stopped
+    networks:
+      - aurora-net
+    depends_on:
+      - api
+
+volumes:
+  data:
+    driver: local
+
+networks:
+  aurora-net:
+    driver: bridge

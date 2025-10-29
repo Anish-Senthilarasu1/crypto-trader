@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
-from backend.api import health
+from backend.api import control, health, metrics
 
 
 @asynccontextmanager
@@ -60,6 +60,8 @@ def create_app() -> FastAPI:
 
     # Register routers
     app.include_router(health.router, tags=["health"])
+    app.include_router(metrics.router, prefix="/api", tags=["metrics"])
+    app.include_router(control.router, prefix="/api", tags=["control"])
 
     return app
 

@@ -40,14 +40,13 @@ aurora-trader/
 - Node.js 20+
 - Docker & Docker Compose (optional)
 
-### Local Development
+### Option 1: Run Everything Locally (Recommended for Development)
 
 1. **Clone and setup environment**:
    ```bash
-   git clone <repo-url>
    cd aurora-trader
    cp .env.example .env
-   # Edit .env with your API keys
+   # Edit .env (API keys optional - works with synthetic data)
    ```
 
 2. **Install Python dependencies**:
@@ -55,17 +54,36 @@ aurora-trader/
    pip install -r requirements.txt
    ```
 
-3. **Run the API**:
+3. **Start the API** (Terminal 1):
    ```bash
    python -m backend.main
+   # API runs at http://localhost:8000
    ```
 
-4. **Verify health**:
+4. **Start the Worker** (Terminal 2):
    ```bash
-   curl http://localhost:8000/health
+   # For single run (testing):
+   python -m backend.worker
+
+   # For continuous trading:
+   # Edit .env: WORKER_ENABLED=true
+   python -m backend.worker
    ```
 
-### Docker Deployment
+5. **Start the UI** (Terminal 3):
+   ```bash
+   cd ui
+   npm install
+   npm run dev
+   # UI runs at http://localhost:3000
+   ```
+
+6. **Open the Dashboard**:
+   - Go to http://localhost:3000
+   - View Dashboard, Live Trading, and Trades pages
+   - Use kill switch to halt trading
+
+### Option 2: Docker Deployment
 
 ```bash
 docker compose up
@@ -75,6 +93,19 @@ Services:
 - API: http://localhost:8000
 - UI: http://localhost:3000
 - Worker: Background scheduler
+
+### Option 3: Run Just the Paper Trading (No UI)
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run worker once
+python -m backend.worker
+
+# View results in database
+sqlite3 data/aurora_trader.db "SELECT * FROM trades;"
+```
 
 ## Configuration
 
@@ -117,11 +148,45 @@ ALPACA_BASE_URL=https://paper-api.alpaca.markets
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/health` | GET | Health check |
-| `/metrics` | GET | Performance metrics |
-| `/config` | GET/PUT | Strategy parameters |
-| `/signals/preview` | GET | Preview signals |
-| `/trade/paper` | POST | Start/stop live trading |
-| `/halt` | POST | Emergency kill switch |
+| `/api/metrics` | GET | Trading performance metrics |
+| `/api/metrics/positions` | GET | Current open positions |
+| `/api/metrics/trades` | GET | Closed trade history |
+| `/api/metrics/equity` | GET | Equity curve data |
+| `/api/status` | GET | System status & daily P&L |
+| `/api/halt` | POST | Emergency kill switch |
+| `/api/resume` | POST | Deactivate kill switch |
+
+## UI Dashboard
+
+Access the web UI at http://localhost:3000
+
+### Pages
+
+1. **Dashboard** (`/`)
+   - Equity curve chart (1 week view)
+   - Current equity display
+   - Total P&L ($ and %)
+   - Win rate and trade count
+   - Max drawdown metric
+   - Auto-refresh every 30s
+
+2. **Live Trading** (`/live`)
+   - Worker status indicator
+   - Kill switch controls
+   - Daily P&L monitoring
+   - Open positions table
+   - Entry/exit prices
+   - Unrealized P&L
+   - Symbol whitelist
+   - Auto-refresh every 5s
+
+3. **Trades** (`/trades`)
+   - All closed trades table
+   - Filter by wins/losses
+   - Entry/exit details
+   - P&L per trade
+   - Trade statistics
+   - Auto-refresh every 10s
 
 ## Testing
 
@@ -176,15 +241,40 @@ See [SECURITY.md](SECURITY.md) for:
 - Audit logging
 - Incident response
 
+## How It Works
+
+1. **Worker** fetches market data every 5 minutes (configurable)
+2. **Strategy** analyzes candles for entry/exit signals
+3. **Risk Manager** validates orders against limits
+4. **Broker** simulates order execution (paper trading)
+5. **Database** stores all orders, fills, and trades
+6. **API** exposes metrics and controls
+7. **UI** displays real-time performance
+
+## Synthetic Data Mode
+
+Without API keys, the system uses **synthetic data** for testing:
+- Generates realistic OHLCV candles
+- Simulates market volatility
+- Perfect for strategy development
+- No external API calls required
+
 ## Changelog
 
 ### [0.1.0] - 2025-10-29
 #### Added
-- Project scaffold with FastAPI backend
-- Health check endpoint
-- Docker configuration
-- Pre-commit hooks
-- Basic project structure
+- Complete paper trading system
+- FastAPI backend with metrics/control endpoints
+- Live worker with APScheduler
+- Momentum & mean-reversion strategies
+- ATR-based risk management
+- SQLite database for trade history
+- Next.js UI dashboard
+- Real-time position monitoring
+- Kill switch functionality
+- Docker deployment support
+- Synthetic data mode
+- 65 tests (all passing)
 
 ## License
 
